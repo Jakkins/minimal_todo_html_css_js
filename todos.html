@@ -1,0 +1,199 @@
+<!doctype html>
+
+<!--
+https://stackoverflow.com/a/37105645
+
+Firefox 
+  localStorage is cleared when these three conditions are met: 
+    (a) user clears recent history
+    (b) cookies are selected to be cleared
+    (c) time range is "Everything"
+
+Chrome
+  localStorage is cleared when these conditions are met: 
+    (a) clear browsing data
+    (b) "cookies and other site data" is selected
+    (c) timeframe is "from beginning of time"
+  In Chrome, it is also now possible to delete localStorage for one specific site.
+
+IE
+  clear localStorage: 
+    (a) Tools--Internet Options
+    (b) General tab
+    (c) delete browsing history on exit
+    (d) ensure "Cookies and website data" (or "temporary internet files and website files") is selected
+    (e) consider unchecking "Preserve Favorites website data" at the top
+
+Safari: 
+  (a) Click Safari 
+  (b) Preferences 
+  (c) Select the Privacy tab 
+  (d) Click Remove all website data (e) Click Remove Now
+
+Opera: 
+  Despite excellent articles on localStorage from the Opera site, 
+  I haven't yet found clear (non-programmatic) instructions to users on 
+  how to clear localStorage. If anyone finds, please leave a comment 
+  below this answer with reference link.
+-->
+
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TODO</title>
+  <style>
+    body {
+      background-color: rgb(49, 66, 55);
+    }
+
+    p {
+      color: rgb(255, 255, 255);
+    }
+
+    li {
+      list-style: none;
+      margin: 3px;
+    }
+
+    button {
+      border: none;
+      padding: 3px 10px;
+    }
+
+    #list_button {
+      border: 1px solid rgb(78, 170, 127);
+      background-color: #ffffff00;
+      color: white;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    #list_button:hover {
+      border: 1px solid rgb(78, 170, 127);
+      background-color: rgb(78, 170, 127);
+      margin-right: 10px;
+      color: white;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+    }
+  </style>
+</head>
+
+<body>
+
+  <p>
+    <input id="id_input_todo_text" name="todo" type="text" onkeypress="handle_key_press(event)" /> &nbsp;
+    <button onclick="add()">Add</button> &nbsp;
+    <button onclick="save_backup()">Save Backup</button> &nbsp;
+    <button onclick="load_backup()">Load Backup</button>
+  </p>
+
+  <p id="list_view"></p>
+
+  <script>
+
+    /**
+     * GET TODOS
+     */
+    function get_todos_obj() {
+      let todos = localStorage.getItem('todos')
+      if (null === todos)
+        todos = '{ "todos": [] }'
+      return JSON.parse(todos)
+    }
+
+    /**
+     *  ADD
+     */
+    function add() {
+      let obj = get_todos_obj()
+      let input_text = document.getElementById("id_input_todo_text")
+      if (input_text.value !== "" && input_text.value !== null)
+        obj.todos.push(input_text.value)
+      localStorage.setItem("todos", JSON.stringify(obj))
+      input_text.value = ""
+      refresh()
+    }
+
+    function handle_key_press(e) {
+      if (e.keyCode === 13) {
+        e.preventDefault(); // Ensure it is only this code that runs
+        add()
+      }
+    }
+
+    /**
+     *  REMOVE
+     */
+    function remove(value) {
+      console.log('remove')
+      let obj = get_todos_obj()
+      obj.todos = obj.todos.filter(e => e !== value)
+      localStorage.setItem("todos", JSON.stringify(obj))
+      refresh()
+    }
+
+    /**
+     *  SAVE BACKUP 
+     */
+    function save_backup() {
+      let obj = get_todos_obj()
+      var file = new Blob([JSON.stringify(obj)], { type: 'text/plain' })
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(file)
+      a.download = "local.todos"
+      a.click()
+      URL.revokeObjectURL(a.href)
+    }
+
+    /**
+     *  LOAD BACKUP 
+     */
+    function load_backup() {
+      const input = document.createElement('input')
+      input.type = 'file'
+      input.onchange = async (e) => {
+        const file = event.target.files.item(0)
+        const text = await file.text()
+        try {
+          let obj = JSON.parse(text)
+          localStorage.setItem("todos", text)
+          refresh()
+        } catch (error) {
+          console.error("TODO: Error")
+          console.error(error)
+          alert('ERR: Cannot convert to JSON')
+        }
+      }
+      input.click()
+    }
+
+    /**
+     *  REFRESH
+     */
+    function refresh() {
+      let obj = get_todos_obj()
+      let list_view = document.getElementById('list_view')
+      list_view.innerHTML = ""
+      for (let t in obj.todos) {
+        list_view.innerHTML += '<li>' + `<button id="list_button" type="button" onclick="remove('` + obj.todos[t] + `')">X</button>    ` + obj.todos[t] + '</li>'
+      }
+    }
+
+    /**
+     * ON PAGE READY
+     */
+    document.onreadystatechange = () => {
+      if (document.readyState === 'complete') {
+        refresh()
+      }
+    }
+  </script>
+
+</body>
+
+</html>
